@@ -12,6 +12,10 @@ SoftwareSerial btSerial(2, 3);  // RX, TX do módulo Bluetooth
 #define ENA 9   // PWMA
 #define ENB 10  // PWMB
 
+unsigned long ultimoComando = 0;
+const unsigned long tempoDesconexao = 1500;
+bool emMovimento = false;
+
 void moverMotores(bool in1, bool in2, bool in3, bool in4, int ena, int enb, const char* descricao);
 void calcularPWMProporcional(int pwmA, int pwmB, int &saidaA, int &saidaB);
 
@@ -31,6 +35,8 @@ void loop() {
   if (btSerial.available()) {
     String mensagem = btSerial.readStringUntil('\n');
     Serial.println(mensagem);
+
+    ultimoComando = millis();
 
     int fIndex = mensagem.indexOf('F');
     int tIndex = mensagem.indexOf('T');
@@ -64,6 +70,10 @@ void loop() {
       } 
     }
   }
+  if (millis() - ultimoComando > tempoDesconexao && emMovimento) {
+    moverMotores(0, 0, 0, 0, 0, 0, "Parado por desconexão");
+    emMovimento = false;
+  }
 }
 
 void moverMotores(bool in1, bool in2, bool in3, bool in4, int ena, int enb, const char* descricao) {
@@ -80,6 +90,8 @@ void moverMotores(bool in1, bool in2, bool in3, bool in4, int ena, int enb, cons
   Serial.print(in4);
   Serial.print(" - ");
   Serial.println(descricao);
+
+  emMovimento = (ena > 0 || enb > 0);
 }
 
 // Função para calcular PWM proporcional
